@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquakes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <style>
+        #map {
+            height: 70vh;
+        }
+
+        /* Sombra personalizada para el texto */
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="container text-center">
+        <!-- Logo desde URL externa -->
+        <img src="https://imgur.com/ZqpIcic.png" alt="Logo de Terremotos del Mundo" width="200" class="mb-3">
+        <h1 class="display-1 fw-bold text-danger text-shadow">
+            TERREMOTOS DEL MUNDO
+        </h1>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <label class="text-primary">Fecha de inicio</label>
+                <input type="date" class="form-control shadow" id="date-start">
+            </div>
+            <div class="col">
+                <label class="text-primary">Fecha de finalización</label>
+                <input type="date" class="form-control shadow" id="date-end">
+            </div>
+            <div class="col">
+                <button class="btn btn-primary mt-4" id="btn">Mostrar</button>
+            </div>
+        </div>
+    </div>
+    <div class="container mt-3"></div>
+    <div class="mx-auto shadow" id="map"></div>
+
+    <script>
+        // Mapa y fondo 
+        const map = L.map('map').setView([0, 0], 1.5);
+
+        const tileUrl = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+        const att = '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+        const tiles = L.tileLayer(tileUrl, { att });
+        tiles.addTo(map);
+
+        // Acceso a la API
+        const api_url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
+
+        async function getData(start, end) {
+
+            map.eachLayer((layer) => {
+                layer.remove();
+            })
+            tiles.addTo(map);
+
+            const response = await fetch(api_url + start + end);
+
+            const data = await response.json();
+            console.log(data);
+
+            for (let i = 0; i < data.features.length; i++) {
+                let r = data.features[i].properties.mag * 1.5;
+                let lat = data.features[i].geometry.coordinates[1];
+                let lon = data.features[i].geometry.coordinates[0];
+
+                const circle = L.circleMarker([0, 0], {
+                    radius: r,
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.5
+                }).addTo(map);
+                circle.setLatLng([lat, lon]);
+                let dateMs = new Date(data.features[i].properties.time);
+                let date = dateMs.toUTCString();
+                circle.bindTooltip("<h5>" + data.features[i].properties.place + "</h5><p>Magnitud: " + data.features[i].properties.mag + "</p><p>" + date + "</p>");
+            }
+        }
+
+        // getData("&starttime=2024-01-01", "&endtime=2024-01-02");
+        document.getElementById("btn").onclick = () => {
+            let start = "&starttime=" + document.getElementById("date-start").value;
+            let end = "&endtime=" + document.getElementById("date-end").value;
+            getData(start, end);
+        }
+    </script>
+</body>
+
+</html>
